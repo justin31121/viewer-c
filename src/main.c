@@ -6,6 +6,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#define QOI_IMPLEMENTATION
+#include "qoi.h"
+
 static Frame frame;
 float zoom = 1.f;
 
@@ -23,7 +26,31 @@ int img_width, img_height;
 
 void load_file(const char *path) {
 
-  unsigned char *data = stbi_load(path, &img_width, &img_height, 0, 4);
+  bool start_with_qoi = strstr(path, "qoi") != NULL;
+
+  qoi_desc desc;	
+  unsigned char *data = NULL;
+  if(start_with_qoi) {
+    data = stbi_load(path, &img_width, &img_height, 0, 4);
+
+    if(!data) {
+      data = qoi_read(path, &desc, 4);
+      img_width = desc.width;
+      img_height = desc.height;
+    }
+    
+  } else {
+
+    data = qoi_read(path, &desc, 4);
+    img_width = desc.width;
+    img_height = desc.height;
+
+    if(!data) {
+      data = stbi_load(path, &img_width, &img_height, 0, 4);      
+    }
+
+  }
+
   if(!data) {
     fprintf(stderr, "ERROR: Can not open '%s'\n", path); fflush(stderr);
     return; 
@@ -35,7 +62,7 @@ void load_file(const char *path) {
   frame_renderer.images_count = 0;
   frame_renderer_push_texture(img_width, img_height, data, false, &tex);
 
-  stbi_image_free(data);
+  free(data); // both qoi and stbi use 'free'
 
   if(img_width > img_height) {
     zoom = (float) frame.width / (float) img_width;
