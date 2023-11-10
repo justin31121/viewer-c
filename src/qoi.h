@@ -1,3 +1,10 @@
+#ifdef _MSC_VER
+#  pragma warning(push)
+#  pragma warning(disable : 4244)
+#  pragma warning(disable : 4996)
+#  pragma warning(disable : 4267)
+#endif // _MSC_VER
+
 /*
 
 Copyright (c) 2021, Dominic Szablewski - https://phoboslab.org
@@ -670,3 +677,7 @@ void *qoi_read(const char *filename, qoi_desc *desc, int channels) {
 
 #endif /* QOI_NO_STDIO */
 #endif /* QOI_IMPLEMENTATION */
+
+#ifdef _MSC_VER
+#  pragma warning(pop)
+#endif // _MSC_VER

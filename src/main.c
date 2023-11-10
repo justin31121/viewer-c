@@ -1,7 +1,11 @@
-#include <stdio.h>
 
 #define FRAME_IMPLEMENTATION
 #include "frame.h"
+
+// For decoding
+
+#define PNM_IMPLEMENTATION
+#include "pnm.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -26,31 +30,18 @@ int img_width, img_height;
 
 void load_file(const char *path) {
 
-  bool start_with_qoi = strstr(path, "qoi") != NULL;
-
   qoi_desc desc;	
   unsigned char *data = NULL;
-  if(start_with_qoi) {
-    data = stbi_load(path, &img_width, &img_height, 0, 4);
-
-    if(!data) {
-      data = qoi_read(path, &desc, 4);
-      img_width = desc.width;
-      img_height = desc.height;
-    }
-    
-  } else {
-
-    data = qoi_read(path, &desc, 4);
-    img_width = desc.width;
-    img_height = desc.height;
-
-    if(!data) {
-      data = stbi_load(path, &img_width, &img_height, 0, 4);      
-    }
-
+  
+  data = qoi_read(path, &desc, 4);
+  img_width = desc.width;
+  img_height = desc.height;
+  if(!data) {
+    data = pnm_load(path, &img_width, &img_height, NULL, 4);
   }
-
+  if(!data) {
+    data = stbi_load(path, &img_width, &img_height, 0, 4);
+  }  
   if(!data) {
     fprintf(stderr, "ERROR: Can not open '%s'\n", path); fflush(stderr);
     return; 
@@ -62,7 +53,7 @@ void load_file(const char *path) {
   frame_renderer.images_count = 0;
   frame_renderer_push_texture(img_width, img_height, data, false, &tex);
 
-  free(data); // both qoi and stbi use 'free'
+  free(data); // all libs use 'free'
 
   if(img_width > img_height) {
     zoom = (float) frame.width / (float) img_width;
@@ -118,7 +109,6 @@ int main(int argc, char **argv) {
 	y_drag = false;
 	x_drag = false;
       } break;
-
       case FRAME_EVENT_KEYPRESS: {
 
 	switch(event.as.key) {
