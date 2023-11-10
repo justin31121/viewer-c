@@ -13,8 +13,13 @@
 #define QOI_IMPLEMENTATION
 #include "qoi.h"
 
+#define PADDING 48
+#define BORDER_PADDING 4
+
 static Frame frame;
 float zoom = 1.f;
+float initial_zoom = 1.f;
+bool show_border = false;
 
 float y_off = 0.f;
 float y_start = 0.f;
@@ -56,12 +61,13 @@ void load_file(const char *path) {
   free(data); // all libs use 'free'
 
   if(img_width > img_height) {
-    zoom = (float) frame.width / (float) img_width;
+    zoom = ((float) frame.width - 2 * PADDING) / (float) img_width;
   } else {
-    zoom = (float) frame.height / (float) img_height;
+    zoom = ((float) frame.height - 2 * PADDING) / (float) img_height;
   }
   y_off = 0.f;
   x_off = 0.f;
+  initial_zoom = zoom;
 }
 
 int main(int argc, char **argv) {
@@ -112,6 +118,14 @@ int main(int argc, char **argv) {
       case FRAME_EVENT_KEYPRESS: {
 
 	switch(event.as.key) {
+	case 'b': {
+	  show_border = !show_border;
+	} break;
+	case 'r': {
+	  zoom = initial_zoom;
+	  x_off = 0.f;
+	  y_off = 0.f;
+	} break;
 	case 'q': {
 	  frame.running = false;
 	} break;
@@ -160,11 +174,19 @@ int main(int argc, char **argv) {
       float ratio =  (float) img_width / (float) img_height;
       (void) ratio;
 
-      frame_renderer_texture(tex,
-			     vec2f((float) frame.width/2 - target_width/2 + x_off,
-				   (float) frame.height/2 - target_height/2 + y_off),
-			     vec2f(target_width, target_height),
-			     vec2f(0, 0), vec2f(1, 1));   
+      Vec2f pos = vec2f((float) frame.width/2 - target_width/2 + x_off,
+			(float) frame.height/2 - target_height/2 + y_off);
+      Vec2f size = vec2f(target_width, target_height);
+
+      if(show_border) {
+	frame_renderer_solid_rect(vec2f(pos.x - BORDER_PADDING,
+					pos.y - BORDER_PADDING),
+				  vec2f(size.x + 2 * BORDER_PADDING,
+					size.y + 2 * BORDER_PADDING),
+				  WHITE);     	
+      }
+      
+      frame_renderer_texture(tex, pos, size, vec2f(0, 0), vec2f(1, 1));   
     }
 
     last_click -= DT;
